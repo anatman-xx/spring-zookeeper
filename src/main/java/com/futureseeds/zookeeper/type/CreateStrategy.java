@@ -1,5 +1,18 @@
 package com.futureseeds.zookeeper.type;
 
 public enum CreateStrategy {
-	NONE, CONSTRUCTOR, BEAN
+	/**
+	 * None
+	 */
+	NONE,
+
+	/**
+	 * Get value by constructing new instance
+	 */
+	CONSTRUCTOR,
+	
+	/**
+	 * Get value from exist beans from application context
+	 */
+	BEAN
 }
