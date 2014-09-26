@@ -2,7 +2,7 @@ package com.futureseeds.zookeeper.handler;
 
 import java.util.Set;
 
-import com.futureseeds.zookeeper.annotation.FieldEditor;
+import com.futureseeds.zookeeper.type.FieldEditor;
 import com.github.zkclient.IZkDataListener;
 
 public class ZkDataChangeEventHandler implements IZkDataListener {

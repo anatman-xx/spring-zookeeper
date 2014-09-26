@@ -1,14 +1,13 @@
-package com.futureseeds.zookeeper.tag;
+package com.futureseeds.zookeeper.util;
 
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.AbstractSimpleBeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
 import org.w3c.dom.Element;
 
-import com.futureseeds.zookeeper.ZookeeperResource;
-import com.futureseeds.zookeeper.ZookeeperResource.OnConnectionFailed;
-import com.futureseeds.zookeeper.ZookeeperResource.PingCmd;
-import com.futureseeds.zookeeper.ZookeeperResource.ReloadContext;
+import com.futureseeds.zookeeper.util.ZookeeperResource.OnConnectionFailed;
+import com.futureseeds.zookeeper.util.ZookeeperResource.PingCmd;
+import com.futureseeds.zookeeper.util.ZookeeperResource.ReloadContext;
 
 public class ZookeeperResourcerParser extends AbstractSimpleBeanDefinitionParser {
 

@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.annotation;
+package com.futureseeds.zookeeper.type;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -7,11 +7,11 @@ import java.lang.reflect.InvocationTargetException;
 import org.springframework.beans.FatalBeanException;
 import org.springframework.context.ApplicationContext;
 
-import com.futureseeds.zookeeper.type.CreateStrategy;
-import com.futureseeds.zookeeper.type.SubscribeType;
+import com.futureseeds.zookeeper.ZkContext;
 
 /**
  * Easy to use instance field editor
+ * NOTE:will change the field accessible state
  */
 public class FieldEditor {
 	private Object object;

@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.tag;
+package com.futureseeds.zookeeper.util;
 
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 

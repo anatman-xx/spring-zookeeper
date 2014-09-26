@@ -20,11 +20,11 @@ import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import com.futureseeds.zookeeper.ZookeeperConfigurer;
-import com.futureseeds.zookeeper.ZookeeperResource;
-import com.futureseeds.zookeeper.ZookeeperResource.OnConnectionFailed;
-import com.futureseeds.zookeeper.ZookeeperResource.PingCmd;
-import com.futureseeds.zookeeper.ZookeeperResource.ReloadContext;
+import com.futureseeds.zookeeper.util.ZookeeperConfigurer;
+import com.futureseeds.zookeeper.util.ZookeeperResource;
+import com.futureseeds.zookeeper.util.ZookeeperResource.OnConnectionFailed;
+import com.futureseeds.zookeeper.util.ZookeeperResource.PingCmd;
+import com.futureseeds.zookeeper.util.ZookeeperResource.ReloadContext;
 
 public class ZookeeperResourceTest {
     private static Log log = LogFactory.getLog(ZookeeperResourceTest.class);

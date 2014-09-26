@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper;
+package com.futureseeds.zookeeper.util;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;

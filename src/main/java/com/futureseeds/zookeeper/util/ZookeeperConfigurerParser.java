@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.tag;
+package com.futureseeds.zookeeper.util;
 
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -8,7 +8,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.xml.DomUtils;
 import org.w3c.dom.Element;
 
-import com.futureseeds.zookeeper.ZookeeperConfigurer;
 
 public class ZookeeperConfigurerParser extends AbstractSimpleBeanDefinitionParser {
 

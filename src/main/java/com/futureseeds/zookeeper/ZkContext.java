@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.annotation;
+package com.futureseeds.zookeeper;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -14,8 +14,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
+import com.futureseeds.zookeeper.annotation.ZkManage;
+import com.futureseeds.zookeeper.annotation.ZkValue;
 import com.futureseeds.zookeeper.handler.ZkDataChangeEventHandler;
 import com.futureseeds.zookeeper.type.CreateStrategy;
+import com.futureseeds.zookeeper.type.FieldEditor;
 import com.futureseeds.zookeeper.type.SubscribeType;
 import com.github.zkclient.ZkClient;
 
