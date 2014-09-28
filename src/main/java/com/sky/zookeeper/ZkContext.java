@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.FatalBeanException;
 import org.springframework.beans.factory.InitializingBean;
@@ -24,6 +26,8 @@ import com.sky.zookeeper.type.SubscribeType;
 
 @Component
 public abstract class ZkContext implements InitializingBean, ApplicationContextAware {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ZkContext.class);
+
 //	@Value("${zk.connection}")
 	private String zkConnection = "localhost:2181";
 
@@ -33,7 +37,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	private Map<String, Set<FieldEditor>> zkPathMapping;
 	
 	public static void trace(String message) {
-		System.out.println("[ZkContext] "+ message);
+		LOGGER.trace("[ZkContext] "+ message);
 	}
 
 	public Map<String, Set<FieldEditor>> getZkPathMapping() {
