@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.util;
+package com.sky.zookeeper.util;
 
 import java.util.HashMap;
 import java.util.Map;

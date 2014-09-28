@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.type;
+package com.sky.zookeeper.type;
 
 public enum CreateStrategy {
 	/**

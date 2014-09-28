@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.util;
+package com.sky.zookeeper.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -6,7 +6,7 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.springframework.context.support.AbstractApplicationContext;
 
-import com.futureseeds.zookeeper.util.ZookeeperResource.ReloadContext;
+import com.sky.zookeeper.util.ZookeeperResource.ReloadContext;
 
 public class RefreshContextWatcher implements Watcher {
 

@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.annotation;
+package com.sky.zookeeper.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

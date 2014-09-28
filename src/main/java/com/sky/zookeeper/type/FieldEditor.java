@@ -1,4 +1,4 @@
-package com.futureseeds.zookeeper.type;
+package com.sky.zookeeper.type;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -7,7 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import org.springframework.beans.FatalBeanException;
 import org.springframework.context.ApplicationContext;
 
-import com.futureseeds.zookeeper.ZkContext;
+import com.sky.zookeeper.ZkContext;
 
 /**
  * Easy to use instance field editor
