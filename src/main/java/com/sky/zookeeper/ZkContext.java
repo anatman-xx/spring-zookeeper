@@ -28,9 +28,6 @@ import com.sky.zookeeper.type.SubscribeType;
 public abstract class ZkContext implements InitializingBean, ApplicationContextAware {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZkContext.class);
 
-//	@Value("${zk.connection}")
-	private String zkConnection = "localhost:2181";
-
 	private ZkClient zkClient;
 	private ApplicationContext applicationContext;
 
@@ -38,6 +35,10 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	
 	public static void trace(String message) {
 		LOGGER.trace("[ZkContext] "+ message);
+	}
+
+	public String getZkConnection() {
+		return "localhost:2181";
 	}
 
 	public Map<String, Set<FieldEditor>> getZkPathMapping() {
@@ -147,6 +148,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
-		this.zkClient = new ZkClient(zkConnection, 1000);
+		this.zkClient = new ZkClient(getZkConnection(), 1000);
 	}
 }
