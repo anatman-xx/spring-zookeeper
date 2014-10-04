@@ -63,7 +63,7 @@ public class FieldEditor {
 	 * Set field with new value contructed by given string or bean
 	 */
 	public void set(String value) {
-		ZkContext.trace("set field to " + value.toString());
+		ZkContext.LOGGER.trace("set field to " + value.toString());
 		try {
 			switch (createStrategy) {
 			case CONSTRUCTOR:
