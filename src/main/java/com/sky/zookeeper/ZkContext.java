@@ -20,6 +20,7 @@ import org.springframework.util.ReflectionUtils.FieldCallback;
 import org.springframework.util.ReflectionUtils.FieldFilter;
 
 import com.github.zkclient.ZkClient;
+import com.sky.zookeeper.annotation.ZkLeader;
 import com.sky.zookeeper.annotation.ZkManage;
 import com.sky.zookeeper.annotation.ZkValue;
 import com.sky.zookeeper.handler.ZkDataChangeEventHandler;
@@ -35,6 +36,14 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		@Override
 		public boolean matches(Field field) {
 			return ReflectionUtils.COPYABLE_FIELDS.matches(field) && field.isAnnotationPresent(ZkValue.class);
+		}
+	};
+
+	public static final FieldFilter ZKLEADER_ANNOTATED_FIELDS = new FieldFilter() {
+		@Override
+		public boolean matches(Field field) {
+			return ReflectionUtils.COPYABLE_FIELDS.matches(field) && field.isAnnotationPresent(ZkLeader.class)
+					&& field.getDeclaringClass().equals(Boolean.class);
 		}
 	};
 
@@ -70,14 +79,23 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 					registerZkValue(bean, field, true);
 				}
 			}, ZKVALUE_ANNOTATED_FIELDS);
+			
+			ReflectionUtils.doWithFields(bean.getClass(), new FieldCallback() {
+				@Override
+				public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
+					LOGGER.trace("found field(" + field.getName() + ") with ZkLeader");
+
+					registerZkLeader(bean, field, true);
+				}
+			}, ZKLEADER_ANNOTATED_FIELDS);
 		}
 	}
 
-	private boolean validateZkPathMapping(Map<String, Set<FieldEditor>> mapping) {
+	private boolean validateZkPathMapping() {
 		Map<String, SubscribeType> zkPathSubscribeTypeMapping = new HashMap<String, SubscribeType>();
 		Map<String, CreateStrategy> zkPathCreateStrategyMapping = new HashMap<String, CreateStrategy>();
 
-		for (Entry<String, Set<FieldEditor>> entry : mapping.entrySet()) {
+		for (Entry<String, Set<FieldEditor>> entry : zkPathMapping.entrySet()) {
 			for (FieldEditor fieldEditor : entry.getValue()) {
 				if (zkPathSubscribeTypeMapping.containsKey(entry.getKey())
 						&& zkPathSubscribeTypeMapping.get(entry.getKey()) != fieldEditor.getSubscribeType()) {
@@ -111,6 +129,10 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			break;
 		}
 
+		return true;
+	}
+	
+	private boolean registerZkLeader(Object bean, Field field, boolean initial) {
 		return true;
 	}
 
@@ -149,7 +171,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		scanFields();
-		if (validateZkPathMapping(zkPathMapping)) {
+
+		if (validateZkPathMapping()) {
 			for (Entry<String, Set<FieldEditor>> entry : zkPathMapping.entrySet()) {
 				registerZkEvent(entry.getKey(), entry.getValue());
 			}
