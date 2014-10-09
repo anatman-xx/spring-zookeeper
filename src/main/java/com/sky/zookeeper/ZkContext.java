@@ -52,9 +52,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	private ZkClient zkClient;
 	private Map<String, Set<FieldEditor>> zkPathMapping;
 
-	public String getZkConnection() {
-		return "localhost:2181";
-	}
+	public abstract String getZkConnection();
+	public abstract Integer getZkConnectionTimeout();
 
 	public ZkClient getZkClient() {
 		return zkClient;
@@ -91,7 +90,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		}
 	}
 
-	private boolean validateZkPathMapping() {
+	private void validateZkPathMapping() {
 		Map<String, SubscribeType> zkPathSubscribeTypeMapping = new HashMap<String, SubscribeType>();
 		Map<String, CreateStrategy> zkPathCreateStrategyMapping = new HashMap<String, CreateStrategy>();
 
@@ -108,8 +107,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				}
 			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -133,6 +130,13 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	}
 	
 	private boolean registerZkLeader(Object bean, Field field, boolean initial) {
+		ZkLeader annotation = field.getAnnotation(ZkLeader.class);
+		String zkLeaderElectionPath = annotation.value();
+		
+		zkClient.createEphemeralSequential(zkLeaderElectionPath, "1".getBytes());
+		
+//		zkClient.
+
 		return true;
 	}
 
@@ -171,17 +175,18 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		scanFields();
-
-		if (validateZkPathMapping()) {
-			for (Entry<String, Set<FieldEditor>> entry : zkPathMapping.entrySet()) {
-				registerZkEvent(entry.getKey(), entry.getValue());
-			}
+		validateZkPathMapping();
+		
+		for (Entry<String, Set<FieldEditor>> entry : zkPathMapping.entrySet()) {
+			registerZkEvent(entry.getKey(), entry.getValue());
 		}
 	}
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.zkPathMapping = new HashMap<String, Set<FieldEditor>>();
+
 		this.applicationContext = applicationContext;
-		this.zkClient = new ZkClient(getZkConnection(), 1000);
+		this.zkClient = new ZkClient(getZkConnection(), getZkConnectionTimeout());
 	}
 }
