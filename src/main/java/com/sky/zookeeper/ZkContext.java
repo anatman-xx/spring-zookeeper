@@ -157,6 +157,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.zkPathMapping = new HashMap<String, Set<FieldEditor>>();
+
 		this.applicationContext = applicationContext;
 		this.zkClient = new ZkClient(getZkConnection(), getZkConnectionTimeout());
 	}
