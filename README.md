@@ -10,12 +10,13 @@ ANNOTATION style:
 	c. add @ZkManage to bean
 	d. add @ZkValue to field
 	
-	Well, all done, now enjoy yourself. 
+Well, all done, now enjoy yourself. 
 
-XML style
+XML style:
 ---
-	The module create a customized PropertyPlaceholderConfigurer which load properties from Zookeeper. And also with properties changing in Zookeeper server, the module will trigger SpringFramework context reload.
-	There're 2 ways to load the module when you use SpringFramework as application container
+The module create a customized PropertyPlaceholderConfigurer which load properties from Zookeeper. And also with properties changing in Zookeeper server, the module will trigger SpringFramework context reload.
+There're 2 ways to load the module when you use SpringFramework as application container
+
 	1. Bean Style
 		a. add jar to the classpath.
 		b. in your spring application context definition XML add following bean definition
@@ -58,9 +59,10 @@ XML style
 				pingCmd="ls" regression="true" onConnectionFailed="THROW_EXCEPTION" reloadContext="AUTO" />
 		instead of by zkResource.initializeBy = "LOCAL_FILE".
 		
-	Then you can Use ${propName} to take reference just like when you use PropertyPlaceholderConfigurer, if property defined in zookeeper znodes, value will be set.
+Then you can Use ${propName} to take reference just like when you use PropertyPlaceholderConfigurer, if property defined in zookeeper znodes, value will be set.
 	
-	Notice:
+Notice:
+
 	1. Both load methods have been tested in Spring Framework 2.5.6 and passed.
 	2. If you've one or more PropertyPlaceholderConfigurer, remember to set 'order' attribute and 'ignoreUnresolvablePlaceholders' to every placeholderConfigurer. 
 	   Attribute 'order' decides the precedence of your resource. 0 is most important, default value is 2^31-1, which is the lowest precedence. Lowest precedence means once variable conflict encountered, variable read from your config will always be overwritten!
