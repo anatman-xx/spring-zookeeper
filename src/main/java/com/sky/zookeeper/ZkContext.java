@@ -43,9 +43,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	private ZkClient zkClient;
 	private Map<String, Set<FieldEditor>> zkPathMapping;
 
-	public String getZkConnection() {
-		return "localhost:2181";
-	}
+	public abstract String getZkConnection();
+	public abstract Integer getZkConnectionTimeout();
 
 	public ZkClient getZkClient() {
 		return zkClient;
@@ -159,6 +158,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.applicationContext = applicationContext;
-		this.zkClient = new ZkClient(getZkConnection(), 1000);
+		this.zkClient = new ZkClient(getZkConnection(), getZkConnectionTimeout());
 	}
 }
