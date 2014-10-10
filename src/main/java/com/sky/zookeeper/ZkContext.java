@@ -19,7 +19,9 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.ReflectionUtils.FieldCallback;
 import org.springframework.util.ReflectionUtils.FieldFilter;
 
-import com.github.zkclient.ZkClient;
+import com.netflix.curator.framework.CuratorFramework;
+import com.netflix.curator.framework.CuratorFrameworkFactory;
+import com.netflix.curator.retry.RetryNTimes;
 import com.sky.zookeeper.annotation.ZkManage;
 import com.sky.zookeeper.annotation.ZkValue;
 import com.sky.zookeeper.handler.ZkDataChangeEventHandler;
@@ -40,13 +42,14 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 	private ApplicationContext applicationContext;
 
-	private ZkClient zkClient;
+	private CuratorFramework zkClient;
+//	private ZkClient zkClient;
 	private Map<String, Set<FieldEditor>> zkPathMapping;
 
 	public abstract String getZkConnection();
 	public abstract Integer getZkConnectionTimeout();
 
-	public ZkClient getZkClient() {
+	public CuratorFramework getZkClient() {
 		return zkClient;
 	}
 
@@ -102,7 +105,13 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 		switch (fieldEditor.getSubscribeType()) {
 		case DATA_CHANGE:
-			zkClient.subscribeDataChanges(zkPath, new ZkDataChangeEventHandler(fieldEditorSet));
+			try {
+				zkClient.getData()
+					.usingWatcher(new ZkDataChangeEventHandler(zkClient, fieldEditorSet))
+					.forPath(zkPath);
+			} catch (Exception e) {
+				throw new FatalBeanException("register zkEvent failed (on path \"" + zkPath + "\")");
+			}
 
 			break;
 
@@ -121,7 +130,13 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				applicationContext);
 
 		if (initial) {
-			byte[] dataByte = zkClient.readData(zkPath, true);
+			byte[] dataByte = null;
+
+			try {
+				dataByte = zkClient.getData().forPath(zkPath);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 
 			if (dataByte == null) {
 				throw new FatalBeanException("no data found on path \"" + zkPath + "\"");
@@ -160,6 +175,12 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		this.zkPathMapping = new HashMap<String, Set<FieldEditor>>();
 
 		this.applicationContext = applicationContext;
-		this.zkClient = new ZkClient(getZkConnection(), getZkConnectionTimeout());
+		this.zkClient = CuratorFrameworkFactory.builder()
+				.connectString(getZkConnection())
+				.connectionTimeoutMs(getZkConnectionTimeout())
+				.retryPolicy(new RetryNTimes(100, 10000))
+				.build();
+		
+		this.zkClient.start();
 	}
 }
