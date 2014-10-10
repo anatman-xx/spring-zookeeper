@@ -50,7 +50,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	private ApplicationContext applicationContext;
 
 	private ZkClient zkClient;
-	private Map<String, Set<FieldEditor>> zkPathMapping;
+	private Map<String, Set<FieldEditor>> zkPathFieldEditorMapping;
+	private Map<String, FieldEditor> zkPathLeaderMapping;
 
 	public abstract String getZkConnection();
 	public abstract Integer getZkConnectionTimeout();
@@ -60,7 +61,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	}
 
 	public Map<String, Set<FieldEditor>> getZkPathMapping() {
-		return zkPathMapping;
+		return zkPathFieldEditorMapping;
 	}
 
 	/**
@@ -94,7 +95,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		Map<String, SubscribeType> zkPathSubscribeTypeMapping = new HashMap<String, SubscribeType>();
 		Map<String, CreateStrategy> zkPathCreateStrategyMapping = new HashMap<String, CreateStrategy>();
 
-		for (Entry<String, Set<FieldEditor>> entry : zkPathMapping.entrySet()) {
+		for (Entry<String, Set<FieldEditor>> entry : zkPathFieldEditorMapping.entrySet()) {
 			for (FieldEditor fieldEditor : entry.getValue()) {
 				if (zkPathSubscribeTypeMapping.containsKey(entry.getKey())
 						&& zkPathSubscribeTypeMapping.get(entry.getKey()) != fieldEditor.getSubscribeType()) {
@@ -160,13 +161,13 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			fieldEditor.set(data);
 		}
 
-		if (zkPathMapping.containsKey(zkPath)) {
-			zkPathMapping.get(zkPath).add(fieldEditor);
+		if (zkPathFieldEditorMapping.containsKey(zkPath)) {
+			zkPathFieldEditorMapping.get(zkPath).add(fieldEditor);
 		} else {
 			Set<FieldEditor> fieldEditorSet = new HashSet<FieldEditor>();
 			fieldEditorSet.add(fieldEditor);
 
-			zkPathMapping.put(zkPath, fieldEditorSet);
+			zkPathFieldEditorMapping.put(zkPath, fieldEditorSet);
 		}
 
 		return true;
@@ -177,14 +178,14 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		scanFields();
 		validateZkPathMapping();
 		
-		for (Entry<String, Set<FieldEditor>> entry : zkPathMapping.entrySet()) {
+		for (Entry<String, Set<FieldEditor>> entry : zkPathFieldEditorMapping.entrySet()) {
 			registerZkEvent(entry.getKey(), entry.getValue());
 		}
 	}
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		this.zkPathMapping = new HashMap<String, Set<FieldEditor>>();
+		this.zkPathFieldEditorMapping = new HashMap<String, Set<FieldEditor>>();
 
 		this.applicationContext = applicationContext;
 		this.zkClient = new ZkClient(getZkConnection(), getZkConnectionTimeout());

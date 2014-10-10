@@ -1,4 +1,4 @@
-package com.sky.zookeeper.config;
+package com.sky.zookeeper;
 
 import static org.junit.Assert.*;
 
