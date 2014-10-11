@@ -22,6 +22,7 @@ import org.springframework.util.ReflectionUtils.FieldFilter;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
 import com.netflix.curator.retry.RetryNTimes;
+import com.sky.zookeeper.annotation.ZkLeader;
 import com.sky.zookeeper.annotation.ZkManage;
 import com.sky.zookeeper.annotation.ZkValue;
 import com.sky.zookeeper.handler.ZkDataChangeEventHandler;
@@ -40,11 +41,19 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		}
 	};
 
+	public static final FieldFilter ZKLEADER_ANNOTATED_FIELDS = new FieldFilter() {
+		@Override
+		public boolean matches(Field field) {
+			return ReflectionUtils.COPYABLE_FIELDS.matches(field) && field.isAnnotationPresent(ZkLeader.class)
+					&& field.getDeclaringClass().equals(Boolean.class);
+		}
+	};
+
 	private ApplicationContext applicationContext;
 
 	private CuratorFramework zkClient;
-//	private ZkClient zkClient;
-	private Map<String, Set<FieldEditor>> zkPathMapping;
+	private Map<String, Set<FieldEditor>> zkPathFieldEditorMapping;
+	private Map<String, FieldEditor> zkPathLeaderMapping;
 
 	public abstract String getZkConnection();
 	public abstract Integer getZkConnectionTimeout();
@@ -54,7 +63,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	}
 
 	public Map<String, Set<FieldEditor>> getZkPathMapping() {
-		return zkPathMapping;
+		return zkPathFieldEditorMapping;
 	}
 
 	/**
@@ -72,14 +81,23 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 					registerZkValue(bean, field, true);
 				}
 			}, ZKVALUE_ANNOTATED_FIELDS);
+			
+			ReflectionUtils.doWithFields(bean.getClass(), new FieldCallback() {
+				@Override
+				public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
+					LOGGER.trace("found field(" + field.getName() + ") with ZkLeader");
+
+					registerZkLeader(bean, field, true);
+				}
+			}, ZKLEADER_ANNOTATED_FIELDS);
 		}
 	}
 
-	private boolean validateZkPathMapping(Map<String, Set<FieldEditor>> mapping) {
+	private void validateZkPathMapping() {
 		Map<String, SubscribeType> zkPathSubscribeTypeMapping = new HashMap<String, SubscribeType>();
 		Map<String, CreateStrategy> zkPathCreateStrategyMapping = new HashMap<String, CreateStrategy>();
 
-		for (Entry<String, Set<FieldEditor>> entry : mapping.entrySet()) {
+		for (Entry<String, Set<FieldEditor>> entry : zkPathFieldEditorMapping.entrySet()) {
 			for (FieldEditor fieldEditor : entry.getValue()) {
 				if (zkPathSubscribeTypeMapping.containsKey(entry.getKey())
 						&& zkPathSubscribeTypeMapping.get(entry.getKey()) != fieldEditor.getSubscribeType()) {
@@ -92,8 +110,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				}
 			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -118,6 +134,17 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		default:
 			break;
 		}
+
+		return true;
+	}
+	
+	private boolean registerZkLeader(Object bean, Field field, boolean initial) {
+		ZkLeader annotation = field.getAnnotation(ZkLeader.class);
+		String zkLeaderElectionPath = annotation.value();
+		
+//		zkClient.createEphemeralSequential(zkLeaderElectionPath, "1".getBytes());
+		
+//		zkClient.
 
 		return true;
 	}
@@ -148,13 +175,13 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			fieldEditor.set(data);
 		}
 
-		if (zkPathMapping.containsKey(zkPath)) {
-			zkPathMapping.get(zkPath).add(fieldEditor);
+		if (zkPathFieldEditorMapping.containsKey(zkPath)) {
+			zkPathFieldEditorMapping.get(zkPath).add(fieldEditor);
 		} else {
 			Set<FieldEditor> fieldEditorSet = new HashSet<FieldEditor>();
 			fieldEditorSet.add(fieldEditor);
 
-			zkPathMapping.put(zkPath, fieldEditorSet);
+			zkPathFieldEditorMapping.put(zkPath, fieldEditorSet);
 		}
 
 		return true;
@@ -163,16 +190,16 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		scanFields();
-		if (validateZkPathMapping(zkPathMapping)) {
-			for (Entry<String, Set<FieldEditor>> entry : zkPathMapping.entrySet()) {
-				registerZkEvent(entry.getKey(), entry.getValue());
-			}
+		validateZkPathMapping();
+		
+		for (Entry<String, Set<FieldEditor>> entry : zkPathFieldEditorMapping.entrySet()) {
+			registerZkEvent(entry.getKey(), entry.getValue());
 		}
 	}
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		this.zkPathMapping = new HashMap<String, Set<FieldEditor>>();
+		this.zkPathFieldEditorMapping = new HashMap<String, Set<FieldEditor>>();
 
 		this.applicationContext = applicationContext;
 		this.zkClient = CuratorFrameworkFactory.builder()
