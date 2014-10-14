@@ -21,11 +21,13 @@ import org.springframework.util.ReflectionUtils.FieldFilter;
 
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.CuratorFrameworkFactory;
+import com.netflix.curator.framework.recipes.leader.LeaderSelector;
 import com.netflix.curator.retry.RetryNTimes;
 import com.sky.zookeeper.annotation.ZkLeader;
 import com.sky.zookeeper.annotation.ZkManage;
 import com.sky.zookeeper.annotation.ZkValue;
 import com.sky.zookeeper.handler.ZkDataChangeEventHandler;
+import com.sky.zookeeper.handler.ZkLeaderHandler;
 import com.sky.zookeeper.type.CreateStrategy;
 import com.sky.zookeeper.type.FieldEditor;
 import com.sky.zookeeper.type.SubscribeType;
@@ -53,7 +55,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 	private CuratorFramework zkClient;
 	private Map<String, Set<FieldEditor>> zkPathFieldEditorMapping;
-	private Map<String, FieldEditor> zkPathLeaderMapping;
+	private Map<String, Set<FieldEditor>> zkPathLeaderFieldEditorMapping;
+	private Map<String, LeaderSelector> zkPathLeaderSelectorMapping;
 
 	public abstract String getZkConnection();
 	public abstract Integer getZkConnectionTimeout();
@@ -113,10 +116,9 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	}
 
 	/**
-	 * NOTE:You should make sure that all FieldEditor in the set with the same
-	 * SubscribeType and the same CreateStrategy
+	 * NOTE:You should make sure that all FieldEditor in the set with the same SubscribeType and the same CreateStrategy
 	 */
-	private boolean registerZkEvent(String zkPath, Set<FieldEditor> fieldEditorSet) {
+	private void registerZkEvent(String zkPath, Set<FieldEditor> fieldEditorSet) {
 		FieldEditor fieldEditor = (FieldEditor) fieldEditorSet.toArray()[0];
 
 		switch (fieldEditor.getSubscribeType()) {
@@ -134,22 +136,40 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		default:
 			break;
 		}
-
-		return true;
 	}
 	
-	private boolean registerZkLeader(Object bean, Field field, boolean initial) {
+	private void registerZkElection(String zkLeaderElectionPath, Set<FieldEditor> fieldEditorSet) {
+		LeaderSelector leaderSelector = new LeaderSelector(zkClient, zkLeaderElectionPath, new ZkLeaderHandler(
+				zkLeaderElectionPath, fieldEditorSet));
+		leaderSelector.start();
+		
+		// TODO:initial value maybe wrong
+
+		zkPathLeaderSelectorMapping.put(zkLeaderElectionPath, leaderSelector);
+	}
+	
+	private void registerZkLeader(Object bean, Field field, boolean initial) {
 		ZkLeader annotation = field.getAnnotation(ZkLeader.class);
 		String zkLeaderElectionPath = annotation.value();
 		
-//		zkClient.createEphemeralSequential(zkLeaderElectionPath, "1".getBytes());
+		FieldEditor fieldEditor = new FieldEditor(bean, field, SubscribeType.DATA_CHANGE, CreateStrategy.CONSTRUCTOR,
+				applicationContext);
 		
-//		zkClient.
+		if (initial) {
+			fieldEditor.set("false");
+		}
 
-		return true;
+		if (zkPathLeaderFieldEditorMapping.containsKey(zkLeaderElectionPath)) {
+			zkPathLeaderFieldEditorMapping.get(zkLeaderElectionPath).add(fieldEditor);
+		} else {
+			Set<FieldEditor> fieldEditorSet = new HashSet<FieldEditor>();
+			fieldEditorSet.add(fieldEditor);
+
+			zkPathLeaderFieldEditorMapping.put(zkLeaderElectionPath, fieldEditorSet);
+		}
 	}
 
-	private boolean registerZkValue(Object bean, Field field, boolean initial) {
+	private void registerZkValue(Object bean, Field field, boolean initial) {
 		ZkValue annotation = field.getAnnotation(ZkValue.class);
 		String zkPath = annotation.value();
 
@@ -183,8 +203,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 			zkPathFieldEditorMapping.put(zkPath, fieldEditorSet);
 		}
-
-		return true;
 	}
 
 	@Override
@@ -195,11 +213,17 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		for (Entry<String, Set<FieldEditor>> entry : zkPathFieldEditorMapping.entrySet()) {
 			registerZkEvent(entry.getKey(), entry.getValue());
 		}
+		
+		for (Entry<String, Set<FieldEditor>> entry : zkPathLeaderFieldEditorMapping.entrySet()) {
+			registerZkElection(entry.getKey(), entry.getValue());
+		}
 	}
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 		this.zkPathFieldEditorMapping = new HashMap<String, Set<FieldEditor>>();
+		this.zkPathLeaderFieldEditorMapping = new HashMap<String, Set<FieldEditor>>();
+		this.zkPathLeaderSelectorMapping = new HashMap<String, LeaderSelector>();
 
 		this.applicationContext = applicationContext;
 		this.zkClient = CuratorFrameworkFactory.builder()
