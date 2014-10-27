@@ -12,7 +12,7 @@ import com.sky.zookeeper.type.SubscribeType;
  * Indicate data source, subscribe type and creation strategy
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface ZkValue {
 	/**
 	 * ZK path where that data stored

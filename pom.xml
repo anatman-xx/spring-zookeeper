@@ -4,7 +4,7 @@
 
 	<groupId>com.sky</groupId>
 	<artifactId>spring-zookeeper</artifactId>
-	<version>1.4</version>
+	<version>1.5</version>
 	<packaging>jar</packaging>
 
 	<name>spring-zookeeper</name>

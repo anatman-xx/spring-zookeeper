@@ -9,16 +9,17 @@ import org.slf4j.LoggerFactory;
 import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.api.CuratorWatcher;
 import com.sky.zookeeper.type.FieldEditor;
+import com.sky.zookeeper.type.MethodInvoker;
 
 public class ZkDataChangeEventHandler implements CuratorWatcher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZkDataChangeEventHandler.class);
 
 	private CuratorFramework zkClient;
-	private Set<FieldEditor> fieldEditorSet;
+	private Set<?> modifiorSet;
 
-	public ZkDataChangeEventHandler(CuratorFramework zkClient, Set<FieldEditor> fieldEditorSet) {
+	public ZkDataChangeEventHandler(CuratorFramework zkClient, Set<?> modifiorSet) {
 		this.zkClient = zkClient;
-		this.fieldEditorSet = fieldEditorSet;
+		this.modifiorSet = modifiorSet;
 	}
 
 	@Override
@@ -31,8 +32,12 @@ public class ZkDataChangeEventHandler implements CuratorWatcher {
 						.usingWatcher(this)
 						.forPath(event.getPath()));
 
-			for (FieldEditor fieldEditor : fieldEditorSet) {
-				fieldEditor.set(newValue);
+			for (Object modifior : modifiorSet) {
+				if (modifior instanceof FieldEditor) {
+					((FieldEditor) modifior).set(newValue);
+				} else if (modifior instanceof MethodInvoker) {
+					((MethodInvoker) modifior).invoke(newValue);
+				}
 			}
 
 			break;
