@@ -3,9 +3,12 @@ package com.sky.zookeeper.type;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import com.sky.zookeeper.ZkContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MethodInvoker {
+	private static final Logger LOGGER = LoggerFactory.getLogger(MethodInvoker.class);
+
 	private Object object;
 	private Method method;
 
@@ -15,7 +18,7 @@ public class MethodInvoker {
 	}
 	
 	public void invoke(String arg) {
-		ZkContext.LOGGER.trace("invoke method with argument " + arg);
+		LOGGER.trace("invoke method with argument " + arg);
 		try {
 			method.invoke(object, arg);
 		} catch (IllegalArgumentException e) {

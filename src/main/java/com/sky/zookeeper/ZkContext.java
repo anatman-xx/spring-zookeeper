@@ -38,7 +38,7 @@ import com.sky.zookeeper.type.SubscribeType;
 
 @Component
 public abstract class ZkContext implements InitializingBean, ApplicationContextAware {
-	public static final Logger LOGGER = LoggerFactory.getLogger(ZkContext.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ZkContext.class);
 
 	public static final FieldFilter ZKVALUE_ANNOTATED_FIELDS = new FieldFilter() {
 		@Override

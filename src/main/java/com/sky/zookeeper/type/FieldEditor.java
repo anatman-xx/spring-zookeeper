@@ -4,16 +4,18 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.FatalBeanException;
 import org.springframework.context.ApplicationContext;
-
-import com.sky.zookeeper.ZkContext;
 
 /**
  * Easy to use instance field editor
  * NOTE:will change the field accessible state
  */
 public class FieldEditor {
+	private static final Logger LOGGER = LoggerFactory.getLogger(FieldEditor.class);
+
 	private Object object;
 	private Field field;
 	private Constructor<?> constructor;
@@ -63,7 +65,7 @@ public class FieldEditor {
 	 * Set field with new value contructed by given string or bean
 	 */
 	public void set(String value) {
-		ZkContext.LOGGER.trace("set field to " + value.toString());
+		LOGGER.trace("set field to " + value.toString());
 		try {
 			switch (createStrategy) {
 			case CONSTRUCTOR:
