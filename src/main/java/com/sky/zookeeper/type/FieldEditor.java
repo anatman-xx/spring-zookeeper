@@ -57,6 +57,7 @@ public class FieldEditor extends Modifier {
 	 */
 	public void set(String value) {
 		LOGGER.trace("set field to " + value.toString());
+
 		try {
 			switch (getCreateStrategy()) {
 			case CONSTRUCTOR:

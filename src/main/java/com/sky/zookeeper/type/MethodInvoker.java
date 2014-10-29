@@ -21,8 +21,12 @@ public class MethodInvoker extends Modifier {
 		setCreateStrategy(annotation.createStrategy());
 	}
 	
+	/**
+	 * not yet support BEAN create strategy
+	 */
 	public void invoke(String arg) {
 		LOGGER.trace("invoke method with argument " + arg);
+
 		try {
 			method.invoke(object, arg);
 		} catch (IllegalArgumentException e) {
