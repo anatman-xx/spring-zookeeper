@@ -3,18 +3,22 @@ package com.sky.zookeeper.type;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
-public class MethodInvoker {
-	private static final Logger LOGGER = LoggerFactory.getLogger(MethodInvoker.class);
+import com.sky.zookeeper.annotation.ZkValue;
 
-	private Object object;
+
+public class MethodInvoker extends Modifier {
 	private Method method;
 
-	public MethodInvoker(Object object, Method method) {
+	public MethodInvoker(Object object, Method method, ApplicationContext applicationContext) {
 		this.object = object;
 		this.method = method;
+
+		ZkValue annotation = method.getAnnotation(ZkValue.class);
+
+		setSubscribeType(annotation.subscribeType());
+		setCreateStrategy(annotation.createStrategy());
 	}
 	
 	public void invoke(String arg) {
