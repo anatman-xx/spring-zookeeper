@@ -7,6 +7,9 @@ import org.apache.zookeeper.WatchedEvent;
 import com.netflix.curator.framework.api.CuratorWatcher;
 import com.sky.zookeeper.type.FieldEditor;
 
+/**
+ * empty event handler
+ */
 public class ZkDataDeletedEventHandler implements CuratorWatcher {
 	@SuppressWarnings("unused")
 	private Set<FieldEditor> fieldEditorSet;
