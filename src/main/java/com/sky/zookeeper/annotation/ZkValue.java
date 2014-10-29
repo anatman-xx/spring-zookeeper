@@ -21,7 +21,7 @@ public @interface ZkValue {
 	String value();
 
 	/**
-	 * Describe what kind of subscription you subscibe 
+	 * Describe what kind of subscription you subscibe
 	 * @return
 	 */
 	SubscribeType subscribeType() default SubscribeType.NONE;

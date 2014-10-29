@@ -34,11 +34,12 @@ import com.sky.zookeeper.handler.ZkLeaderHandler;
 import com.sky.zookeeper.type.CreateStrategy;
 import com.sky.zookeeper.type.FieldEditor;
 import com.sky.zookeeper.type.MethodInvoker;
+import com.sky.zookeeper.type.Modifier;
 import com.sky.zookeeper.type.SubscribeType;
 
 @Component
 public abstract class ZkContext implements InitializingBean, ApplicationContextAware {
-	public static final Logger LOGGER = LoggerFactory.getLogger(ZkContext.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(ZkContext.class);
 
 	public static final FieldFilter ZKVALUE_ANNOTATED_FIELDS = new FieldFilter() {
 		@Override
@@ -70,8 +71,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	private ApplicationContext applicationContext;
 
 	private CuratorFramework zkClient;
-	private Map<String, Set<FieldEditor>> zkPathFieldEditorMapping = new HashMap<String, Set<FieldEditor>>();
-	private Map<String, Set<MethodInvoker>> zkPathMethodMapping = new HashMap<String, Set<MethodInvoker>>();
+	private Map<String, Set<Modifier>> zkPathModifierMapping = new HashMap<String, Set<Modifier>>();
 	private Map<String, Set<FieldEditor>> zkPathLeaderFieldEditorMapping = new HashMap<String, Set<FieldEditor>>();
 	private Map<String, LeaderSelector> zkPathLeaderSelectorMapping = new HashMap<String, LeaderSelector>();
 
@@ -82,14 +82,16 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		return zkClient;
 	}
 
-	public Map<String, Set<FieldEditor>> getZkPathMapping() {
-		return zkPathFieldEditorMapping;
+	public Map<String, Set<Modifier>> getZkPathMapping() {
+		return zkPathModifierMapping;
 	}
 
 	/**
 	 * Scan for Zk* annotated field in which beans annotated with ZkManage
 	 */
 	private void scanForFieldsAndMethods() {
+		LOGGER.trace("scanning for fields and methods with zk* annotation...");
+
 		for (final Object bean : applicationContext.getBeansWithAnnotation(ZkManage.class).values()) {
 			LOGGER.trace("found bean(" + bean.getClass().getName() + ") with ZkManage");
 
@@ -98,7 +100,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
 					LOGGER.trace("found field(" + field.getName() + ") with ZkValue");
 
-					registerZkValueField(bean, field, true);
+					registerZkValue(bean, field, true);
 				}
 			}, ZKVALUE_ANNOTATED_FIELDS);
 			
@@ -107,7 +109,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				public void doWith(Method method) throws IllegalArgumentException, IllegalAccessException {
 					LOGGER.trace("found method(" + method.getName() + ") with ZkValue");
 					
-					registerZkValueMethod(bean, method, true);
+					registerZkValue(bean, method, true);
 				}
 			}, ZKVALUE_ANNOTATED_METHODS);
 			
@@ -116,25 +118,27 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
 					LOGGER.trace("found field(" + field.getName() + ") with ZkLeader");
 
-					registerZkLeaderField(bean, field, true);
+					registerZkLeader(bean, field, true);
 				}
 			}, ZKLEADER_ANNOTATED_FIELDS);
 		}
 	}
 
 	private void validateZkPathMapping() {
+		LOGGER.trace("validating ZkPathMapping...");
+
 		Map<String, SubscribeType> zkPathSubscribeTypeMapping = new HashMap<String, SubscribeType>();
 		Map<String, CreateStrategy> zkPathCreateStrategyMapping = new HashMap<String, CreateStrategy>();
 
-		for (Entry<String, Set<FieldEditor>> entry : zkPathFieldEditorMapping.entrySet()) {
-			for (FieldEditor fieldEditor : entry.getValue()) {
+		for (Entry<String, Set<Modifier>> entry : zkPathModifierMapping.entrySet()) {
+			for (Modifier modifier : entry.getValue()) {
 				if (zkPathSubscribeTypeMapping.containsKey(entry.getKey())
-						&& zkPathSubscribeTypeMapping.get(entry.getKey()) != fieldEditor.getSubscribeType()) {
+						&& zkPathSubscribeTypeMapping.get(entry.getKey()) != modifier.getSubscribeType()) {
 					throw new FatalBeanException("Confilct SubscribeType");
 				}
 
 				if (zkPathCreateStrategyMapping.containsKey(entry.getKey())
-						&& zkPathCreateStrategyMapping.get(entry.getKey()) != fieldEditor.getCreateStrategy()) {
+						&& zkPathCreateStrategyMapping.get(entry.getKey()) != modifier.getCreateStrategy()) {
 					throw new FatalBeanException("Confilct CreateStrategy");
 				}
 			}
@@ -144,14 +148,14 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	/**
 	 * NOTE:You should make sure that all FieldEditor in the set with the same SubscribeType and the same CreateStrategy
 	 */
-	private void registerZkFieldEvent(String zkPath, Set<FieldEditor> fieldEditorSet) {
-		FieldEditor fieldEditor = (FieldEditor) fieldEditorSet.toArray()[0];
+	private void registerZkEvent(String zkPath, Set<Modifier> modifierSet) {
+		Modifier fieldEditor = (Modifier) modifierSet.toArray()[0];
 
 		switch (fieldEditor.getSubscribeType()) {
 		case DATA_CHANGE:
 			try {
 				zkClient.getData()
-					.usingWatcher(new ZkDataChangeEventHandler(zkClient, fieldEditorSet))
+					.usingWatcher(new ZkDataChangeEventHandler(zkClient, modifierSet))
 					.forPath(zkPath);
 			} catch (Exception e) {
 				throw new FatalBeanException("register zkEvent failed (on path \"" + zkPath + "\")");
@@ -164,16 +168,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		}
 	}
 
-	private void registerZkMethodEvent(String zkPath, Set<MethodInvoker> methodInvokerSet) {
-		try {
-			zkClient.getData()
-				.usingWatcher(new ZkDataChangeEventHandler(zkClient, methodInvokerSet))
-				.forPath(zkPath);
-		} catch (Exception e) {
-			throw new FatalBeanException("register zkEvent failed (on path \"" + zkPath + "\")");
-		}
-	}
-	
 	private void registerZkElection(String zkLeaderElectionPath, Set<FieldEditor> fieldEditorSet) {
 		LeaderSelector leaderSelector = new LeaderSelector(zkClient, zkLeaderElectionPath, new ZkLeaderHandler(
 				zkLeaderElectionPath, fieldEditorSet));
@@ -184,12 +178,11 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		zkPathLeaderSelectorMapping.put(zkLeaderElectionPath, leaderSelector);
 	}
 	
-	private void registerZkLeaderField(Object bean, Field field, boolean initial) {
+	private void registerZkLeader(Object bean, Field field, boolean initial) {
 		ZkLeader annotation = field.getAnnotation(ZkLeader.class);
 		String zkLeaderElectionPath = annotation.value();
 		
-		FieldEditor fieldEditor = new FieldEditor(bean, field, SubscribeType.DATA_CHANGE, CreateStrategy.CONSTRUCTOR,
-				applicationContext);
+		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext);
 		
 		if (initial) {
 			fieldEditor.set("false");
@@ -205,12 +198,11 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		}
 	}
 
-	private void registerZkValueField(Object bean, Field field, boolean initial) {
+	private void registerZkValue(Object bean, Field field, boolean initial) {
+		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext);
+
 		ZkValue annotation = field.getAnnotation(ZkValue.class);
 		String zkPath = annotation.value();
-
-		FieldEditor fieldEditor = new FieldEditor(bean, field, annotation.subscribeType(), annotation.createStrategy(),
-				applicationContext);
 
 		if (initial) {
 			byte[] dataByte = null;
@@ -231,22 +223,22 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			fieldEditor.set(data);
 		}
 
-		if (zkPathFieldEditorMapping.containsKey(zkPath)) {
-			zkPathFieldEditorMapping.get(zkPath).add(fieldEditor);
+		if (zkPathModifierMapping.containsKey(zkPath)) {
+			zkPathModifierMapping.get(zkPath).add(fieldEditor);
 		} else {
-			Set<FieldEditor> fieldEditorSet = new HashSet<FieldEditor>();
-			fieldEditorSet.add(fieldEditor);
+			Set<Modifier> modifierSet = new HashSet<Modifier>();
+			modifierSet.add(fieldEditor);
 
-			zkPathFieldEditorMapping.put(zkPath, fieldEditorSet);
+			zkPathModifierMapping.put(zkPath, modifierSet);
 		}
 	}
 	
-	private void registerZkValueMethod(Object bean, Method method, boolean initial) {
+	private void registerZkValue(Object bean, Method method, boolean initial) {
+		MethodInvoker methodInvoker = new MethodInvoker(bean, method, applicationContext);
+
 		ZkValue annotation = method.getAnnotation(ZkValue.class);
 		String zkPath = annotation.value();
 		
-		MethodInvoker methodInvoker = new MethodInvoker(bean, method);
-
 		if (initial) {
 			byte[] dataByte = null;
 
@@ -267,13 +259,13 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			methodInvoker.invoke(data);
 		}
 		
-		if (zkPathMethodMapping.containsKey(zkPath)) {
-			zkPathMethodMapping.get(zkPath).add(methodInvoker);
+		if (zkPathModifierMapping.containsKey(zkPath)) {
+			zkPathModifierMapping.get(zkPath).add(methodInvoker);
 		} else {
-			Set<MethodInvoker> methodInvokerSet = new HashSet<MethodInvoker>();
+			Set<Modifier> methodInvokerSet = new HashSet<Modifier>();
 			methodInvokerSet.add(methodInvoker);
 
-			zkPathMethodMapping.put(zkPath, methodInvokerSet);
+			zkPathModifierMapping.put(zkPath, methodInvokerSet);
 		}
 	}
 
@@ -282,12 +274,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		scanForFieldsAndMethods();
 		validateZkPathMapping();
 		
-		for (Entry<String, Set<FieldEditor>> entry : zkPathFieldEditorMapping.entrySet()) {
-			registerZkFieldEvent(entry.getKey(), entry.getValue());
-		}
-		
-		for (Entry<String, Set<MethodInvoker>> entry : zkPathMethodMapping.entrySet()) {
-			registerZkMethodEvent(entry.getKey(), entry.getValue());
+		for (Entry<String, Set<Modifier>> entry : zkPathModifierMapping.entrySet()) {
+			registerZkEvent(entry.getKey(), entry.getValue());
 		}
 		
 		for (Entry<String, Set<FieldEditor>> entry : zkPathLeaderFieldEditorMapping.entrySet()) {

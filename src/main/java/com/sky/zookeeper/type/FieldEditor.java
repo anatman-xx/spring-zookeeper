@@ -1,39 +1,32 @@
 package com.sky.zookeeper.type;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 import org.springframework.beans.FatalBeanException;
 import org.springframework.context.ApplicationContext;
 
-import com.sky.zookeeper.ZkContext;
+import com.sky.zookeeper.annotation.ZkValue;
 
 /**
  * Easy to use instance field editor
  * NOTE:will change the field accessible state
  */
-public class FieldEditor {
-	private Object object;
+public class FieldEditor extends Modifier {
 	private Field field;
-	private Constructor<?> constructor;
 	
-	private ApplicationContext applicationContext;
-
-	private SubscribeType subscribeType;
-	private CreateStrategy createStrategy;
-
-	public FieldEditor(Object object, Field field, SubscribeType subscribeType, CreateStrategy createStrategy,
-			ApplicationContext applicationContext) {
+	public FieldEditor(Object object, Field field, ApplicationContext applicationContext) {
 		this.object = object;
 		this.field = field;
 		
 		this.field.setAccessible(true);
-
-		this.subscribeType = subscribeType;
-		this.createStrategy = createStrategy;
 		
-		if (createStrategy == CreateStrategy.CONSTRUCTOR) {
+		ZkValue annotation = field.getAnnotation(ZkValue.class);
+
+		setSubscribeType(annotation.subscribeType());
+		setCreateStrategy(annotation.createStrategy());
+		
+		if (getCreateStrategy() == CreateStrategy.CONSTRUCTOR) {
 			try {
 				this.constructor = this.field.getType().getConstructor(String.class);
 			} catch (SecurityException e) {
@@ -63,9 +56,10 @@ public class FieldEditor {
 	 * Set field with new value contructed by given string or bean
 	 */
 	public void set(String value) {
-		ZkContext.LOGGER.trace("set field to " + value.toString());
+		LOGGER.trace("set field to " + value.toString());
+
 		try {
-			switch (createStrategy) {
+			switch (getCreateStrategy()) {
 			case CONSTRUCTOR:
 				Object newValue = constructor.newInstance(value);
 				field.set(object, newValue);
@@ -94,13 +88,5 @@ public class FieldEditor {
 		} catch (InvocationTargetException e) {
 			throw new FatalBeanException("construct new instance failed", e);
 		}
-	}
-
-	public SubscribeType getSubscribeType() {
-		return subscribeType;
-	}
-
-	public CreateStrategy getCreateStrategy() {
-		return createStrategy;
 	}
 }
