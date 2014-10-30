@@ -29,13 +29,13 @@ import com.netflix.curator.retry.RetryNTimes;
 import com.sky.zookeeper.annotation.ZkLeader;
 import com.sky.zookeeper.annotation.ZkManage;
 import com.sky.zookeeper.annotation.ZkValue;
-import com.sky.zookeeper.handler.ZkDataChangeEventHandler;
-import com.sky.zookeeper.handler.ZkLeaderHandler;
 import com.sky.zookeeper.type.CreateStrategy;
 import com.sky.zookeeper.type.FieldEditor;
 import com.sky.zookeeper.type.MethodInvoker;
 import com.sky.zookeeper.type.Modifier;
 import com.sky.zookeeper.type.SubscribeType;
+import com.sky.zookeeper.watcher.ZkDataChangeWatcher;
+import com.sky.zookeeper.watcher.ZkLeaderWatcher;
 
 @Component
 public abstract class ZkContext implements InitializingBean, ApplicationContextAware {
@@ -155,7 +155,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		case DATA_CHANGE:
 			try {
 				zkClient.getData()
-					.usingWatcher(new ZkDataChangeEventHandler(zkClient, modifierSet))
+					.usingWatcher(new ZkDataChangeWatcher(zkClient, modifierSet))
 					.forPath(zkPath);
 			} catch (Exception e) {
 				throw new FatalBeanException("register zkEvent failed (on path \"" + zkPath + "\")");
@@ -169,7 +169,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	}
 
 	private void registerZkElection(String zkLeaderElectionPath, Set<FieldEditor> fieldEditorSet) {
-		LeaderSelector leaderSelector = new LeaderSelector(zkClient, zkLeaderElectionPath, new ZkLeaderHandler(
+		LeaderSelector leaderSelector = new LeaderSelector(zkClient, zkLeaderElectionPath, new ZkLeaderWatcher(
 				zkLeaderElectionPath, fieldEditorSet));
 		leaderSelector.start();
 		

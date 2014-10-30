@@ -1,4 +1,4 @@
-package com.sky.zookeeper.handler;
+package com.sky.zookeeper.watcher;
 
 import java.util.Set;
 
@@ -10,13 +10,13 @@ import com.netflix.curator.framework.recipes.leader.LeaderSelectorListener;
 import com.netflix.curator.framework.state.ConnectionState;
 import com.sky.zookeeper.type.FieldEditor;
 
-public class ZkLeaderHandler implements LeaderSelectorListener {
-	private static final Logger LOGGER = LoggerFactory.getLogger(ZkDataChangeEventHandler.class);
+public class ZkLeaderWatcher implements LeaderSelectorListener {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ZkDataChangeWatcher.class);
 	
 	private String zkPath;
 	private Set<FieldEditor> fieldEditorSet;
 
-	public ZkLeaderHandler(String zkPath, Set<FieldEditor> fieldEditorSet) {
+	public ZkLeaderWatcher(String zkPath, Set<FieldEditor> fieldEditorSet) {
 		this.zkPath = zkPath;
 		this.fieldEditorSet = fieldEditorSet;
 	}
