@@ -35,7 +35,7 @@ import com.sky.zookeeper.type.MethodInvoker;
 import com.sky.zookeeper.type.Modifier;
 import com.sky.zookeeper.type.SubscribeType;
 import com.sky.zookeeper.watcher.ZkDataChangeWatcher;
-import com.sky.zookeeper.watcher.ZkLeaderWatcher;
+import com.sky.zookeeper.watcher.ZkElectionListener;
 
 @Component
 public abstract class ZkContext implements InitializingBean, ApplicationContextAware {
@@ -64,7 +64,19 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		@Override
 		public boolean matches(Field field) {
 			return ReflectionUtils.COPYABLE_FIELDS.matches(field) && field.isAnnotationPresent(ZkLeader.class)
-					&& field.getDeclaringClass().equals(Boolean.class);
+					&& field.getType().equals(Boolean.class);
+		}
+	};
+	
+	public static final MethodFilter ZKLEADER_ANNOTATED_METHODS = new MethodFilter() {
+		@Override
+		public boolean matches(Method method) {
+			Class<?>[] parameterTypes = method.getParameterTypes();
+			if (parameterTypes == null || parameterTypes.length != 1 || !parameterTypes[0].equals(String.class)) {
+				return false;
+			}
+
+			return ReflectionUtils.USER_DECLARED_METHODS.matches(method) && method.isAnnotationPresent(ZkLeader.class);
 		}
 	};
 
@@ -72,7 +84,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 	private CuratorFramework zkClient;
 	private Map<String, Set<Modifier>> zkPathModifierMapping = new HashMap<String, Set<Modifier>>();
-	private Map<String, Set<FieldEditor>> zkPathLeaderFieldEditorMapping = new HashMap<String, Set<FieldEditor>>();
+	private Map<String, Set<Modifier>> zkPathLeaderModifierMapping = new HashMap<String, Set<Modifier>>();
 	private Map<String, LeaderSelector> zkPathLeaderSelectorMapping = new HashMap<String, LeaderSelector>();
 
 	public abstract String getZkConnection();
@@ -118,9 +130,18 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
 					LOGGER.trace("found field(" + field.getName() + ") with ZkLeader");
 
-					registerZkLeader(bean, field, true);
+					registerZkLeader(bean, field);
 				}
 			}, ZKLEADER_ANNOTATED_FIELDS);
+			
+			ReflectionUtils.doWithMethods(bean.getClass(), new MethodCallback() {
+				@Override
+				public void doWith(Method method) throws IllegalArgumentException, IllegalAccessException {
+					LOGGER.trace("found method(" + method.getName() + ") with ZkLeader");
+					
+					registerZkLeader(bean, method);
+				}
+			}, ZKLEADER_ANNOTATED_METHODS);
 		}
 	}
 
@@ -148,7 +169,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	/**
 	 * NOTE:You should make sure that all FieldEditor in the set with the same SubscribeType and the same CreateStrategy
 	 */
-	private void registerZkEvent(String zkPath, Set<Modifier> modifierSet) {
+	private void registerEventWatcher(String zkPath, Set<Modifier> modifierSet) {
 		Modifier fieldEditor = (Modifier) modifierSet.toArray()[0];
 
 		switch (fieldEditor.getSubscribeType()) {
@@ -168,9 +189,9 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		}
 	}
 
-	private void registerZkElection(String zkLeaderElectionPath, Set<FieldEditor> fieldEditorSet) {
-		LeaderSelector leaderSelector = new LeaderSelector(zkClient, zkLeaderElectionPath, new ZkLeaderWatcher(
-				zkLeaderElectionPath, fieldEditorSet));
+	private void registerElectionListener(String zkLeaderElectionPath, Set<Modifier> modifierSet) {
+		LeaderSelector leaderSelector = new LeaderSelector(zkClient, zkLeaderElectionPath, new ZkElectionListener(
+				zkLeaderElectionPath, modifierSet));
 		leaderSelector.start();
 		
 		// TODO:initial value maybe wrong
@@ -178,23 +199,35 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		zkPathLeaderSelectorMapping.put(zkLeaderElectionPath, leaderSelector);
 	}
 	
-	private void registerZkLeader(Object bean, Field field, boolean initial) {
+	private void registerZkLeader(Object bean, Field field) {
 		ZkLeader annotation = field.getAnnotation(ZkLeader.class);
 		String zkLeaderElectionPath = annotation.value();
 		
 		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext);
 		
-		if (initial) {
-			fieldEditor.set("false");
-		}
-
-		if (zkPathLeaderFieldEditorMapping.containsKey(zkLeaderElectionPath)) {
-			zkPathLeaderFieldEditorMapping.get(zkLeaderElectionPath).add(fieldEditor);
+		if (zkPathLeaderModifierMapping.containsKey(zkLeaderElectionPath)) {
+			zkPathLeaderModifierMapping.get(zkLeaderElectionPath).add(fieldEditor);
 		} else {
-			Set<FieldEditor> fieldEditorSet = new HashSet<FieldEditor>();
-			fieldEditorSet.add(fieldEditor);
+			Set<Modifier> modifierSet = new HashSet<Modifier>();
+			modifierSet.add(fieldEditor);
 
-			zkPathLeaderFieldEditorMapping.put(zkLeaderElectionPath, fieldEditorSet);
+			zkPathLeaderModifierMapping.put(zkLeaderElectionPath, modifierSet);
+		}
+	}
+
+	private void registerZkLeader(Object bean, Method method) {
+		ZkLeader annotation = method.getAnnotation(ZkLeader.class);
+		String zkLeaderElectionPath = annotation.value();
+		
+		MethodInvoker methodInvoker = new MethodInvoker(bean, method, applicationContext);
+		
+		if (zkPathLeaderModifierMapping.containsKey(zkLeaderElectionPath)) {
+			zkPathLeaderModifierMapping.get(zkLeaderElectionPath).add(methodInvoker);
+		} else {
+			Set<Modifier> modifierSet = new HashSet<Modifier>();
+			modifierSet.add(methodInvoker);
+
+			zkPathLeaderModifierMapping.put(zkLeaderElectionPath, modifierSet);
 		}
 	}
 
@@ -275,11 +308,11 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		validateZkPathMapping();
 		
 		for (Entry<String, Set<Modifier>> entry : zkPathModifierMapping.entrySet()) {
-			registerZkEvent(entry.getKey(), entry.getValue());
+			registerEventWatcher(entry.getKey(), entry.getValue());
 		}
 		
-		for (Entry<String, Set<FieldEditor>> entry : zkPathLeaderFieldEditorMapping.entrySet()) {
-			registerZkElection(entry.getKey(), entry.getValue());
+		for (Entry<String, Set<Modifier>> entry : zkPathLeaderModifierMapping.entrySet()) {
+			registerElectionListener(entry.getKey(), entry.getValue());
 		}
 	}
 

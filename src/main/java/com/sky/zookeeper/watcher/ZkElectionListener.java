@@ -9,16 +9,18 @@ import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.curator.framework.recipes.leader.LeaderSelectorListener;
 import com.netflix.curator.framework.state.ConnectionState;
 import com.sky.zookeeper.type.FieldEditor;
+import com.sky.zookeeper.type.MethodInvoker;
+import com.sky.zookeeper.type.Modifier;
 
-public class ZkLeaderWatcher implements LeaderSelectorListener {
+public class ZkElectionListener implements LeaderSelectorListener {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZkDataChangeWatcher.class);
 	
 	private String zkPath;
-	private Set<FieldEditor> fieldEditorSet;
+	private Set<Modifier> modifierSet;
 
-	public ZkLeaderWatcher(String zkPath, Set<FieldEditor> fieldEditorSet) {
+	public ZkElectionListener(String zkPath, Set<Modifier> modifierSet) {
 		this.zkPath = zkPath;
-		this.fieldEditorSet = fieldEditorSet;
+		this.modifierSet = modifierSet;
 	}
 
 	@Override
@@ -30,8 +32,12 @@ public class ZkLeaderWatcher implements LeaderSelectorListener {
 	public void takeLeadership(CuratorFramework client) throws Exception {
 		LOGGER.trace("take leader ship(" + zkPath + ")");
 		
-		for (FieldEditor fieldEditor : fieldEditorSet) {
-			fieldEditor.set("true");
+		for (Modifier modifier : modifierSet) {
+			if (modifier instanceof FieldEditor) {
+				((FieldEditor) modifier).set("true");
+			} else if (modifier instanceof MethodInvoker) {
+				((MethodInvoker) modifier).invoke("true");
+			}
 		}
 
 		client.wait();
