@@ -1,4 +1,4 @@
-package com.sky.zookeeper.handler;
+package com.sky.zookeeper.watcher;
 
 import java.util.Set;
 
@@ -10,11 +10,11 @@ import com.sky.zookeeper.type.FieldEditor;
 /**
  * empty event handler
  */
-public class ZkDataDeletedEventHandler implements CuratorWatcher {
+public class ZkDataDeletedWatcher implements CuratorWatcher {
 	@SuppressWarnings("unused")
 	private Set<FieldEditor> fieldEditorSet;
 
-	public ZkDataDeletedEventHandler(Set<FieldEditor> fieldEditorSet) {
+	public ZkDataDeletedWatcher(Set<FieldEditor> fieldEditorSet) {
 		this.fieldEditorSet = fieldEditorSet;
 	}
 

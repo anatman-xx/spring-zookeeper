@@ -24,7 +24,7 @@ public class MethodInvoker extends Modifier {
 	/**
 	 * not yet support BEAN create strategy
 	 */
-	public void invoke(String arg) {
+	public void invoke(Object arg) {
 		LOGGER.trace("invoke method with argument " + arg);
 
 		try {
