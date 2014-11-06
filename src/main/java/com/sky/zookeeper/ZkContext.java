@@ -93,9 +93,11 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	public CuratorFramework getZkClient() {
 		return zkClient;
 	}
-
-	public Map<String, Set<Modifier>> getZkPathMapping() {
-		return zkPathModifierMapping;
+	
+	public void shutdown() {
+		for (Entry<String, LeaderSelector> entry : zkPathLeaderSelectorMapping.entrySet()) {
+			entry.getValue().close();
+		}
 	}
 
 	/**
@@ -193,8 +195,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		LeaderSelector leaderSelector = new LeaderSelector(zkClient, zkLeaderElectionPath, new ZkElectionListener(
 				zkLeaderElectionPath, modifierSet));
 		leaderSelector.start();
-		
-		// TODO:initial value maybe wrong
 
 		zkPathLeaderSelectorMapping.put(zkLeaderElectionPath, leaderSelector);
 	}
@@ -203,7 +203,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 		ZkLeader annotation = field.getAnnotation(ZkLeader.class);
 		String zkLeaderElectionPath = annotation.value();
 		
-		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext);
+		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext, SubscribeType.DATA_CHANGE,
+				CreateStrategy.CONSTRUCTOR);
 		
 		if (zkPathLeaderModifierMapping.containsKey(zkLeaderElectionPath)) {
 			zkPathLeaderModifierMapping.get(zkLeaderElectionPath).add(fieldEditor);
@@ -232,10 +233,11 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	}
 
 	private void registerZkValue(Object bean, Field field, boolean initial) {
-		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext);
-
 		ZkValue annotation = field.getAnnotation(ZkValue.class);
 		String zkPath = annotation.value();
+		
+		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext, annotation.subscribeType(),
+				annotation.createStrategy());
 
 		if (initial) {
 			byte[] dataByte = null;

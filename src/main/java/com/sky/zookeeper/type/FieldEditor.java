@@ -6,8 +6,6 @@ import java.lang.reflect.InvocationTargetException;
 import org.springframework.beans.FatalBeanException;
 import org.springframework.context.ApplicationContext;
 
-import com.sky.zookeeper.annotation.ZkValue;
-
 /**
  * Easy to use instance field editor
  * NOTE:will change the field accessible state
@@ -15,16 +13,15 @@ import com.sky.zookeeper.annotation.ZkValue;
 public class FieldEditor extends Modifier {
 	private Field field;
 	
-	public FieldEditor(Object object, Field field, ApplicationContext applicationContext) {
+	public FieldEditor(Object object, Field field, ApplicationContext applicationContext, SubscribeType subscribeType,
+			CreateStrategy createStrategy) {
 		this.object = object;
 		this.field = field;
 		
 		this.field.setAccessible(true);
 		
-		ZkValue annotation = field.getAnnotation(ZkValue.class);
-
-		setSubscribeType(annotation.subscribeType());
-		setCreateStrategy(annotation.createStrategy());
+		setSubscribeType(subscribeType);
+		setCreateStrategy(createStrategy);
 		
 		if (getCreateStrategy() == CreateStrategy.CONSTRUCTOR) {
 			try {
