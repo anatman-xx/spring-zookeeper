@@ -17,6 +17,8 @@ public class ZkElectionListener implements LeaderSelectorListener {
 	
 	private String zkPath;
 	private Set<Modifier> modifierSet;
+	
+	private Object lock = new Object();
 
 	public ZkElectionListener(String zkPath, Set<Modifier> modifierSet) {
 		this.zkPath = zkPath;
@@ -25,7 +27,24 @@ public class ZkElectionListener implements LeaderSelectorListener {
 
 	@Override
 	public void stateChanged(CuratorFramework client, ConnectionState newState) {
-		LOGGER.trace("state changed");
+		LOGGER.trace("state has changed to " + newState);
+		
+		switch (newState) {
+		case CONNECTED:
+		case LOST:
+			for (Modifier modifier : modifierSet) {
+				if (modifier instanceof FieldEditor) {
+					((FieldEditor) modifier).set("false");
+				} else if (modifier instanceof MethodInvoker) {
+					((MethodInvoker) modifier).invoke("false");
+				}
+			}
+
+			break;
+
+		default:
+			break;
+		}
 	}
 
 	@Override
@@ -40,6 +59,10 @@ public class ZkElectionListener implements LeaderSelectorListener {
 			}
 		}
 
-		client.wait();
+		synchronized (lock) {
+			lock.wait();
+		}
+
+		LOGGER.info("release leader ship(" + zkPath + ")");
 	}
 }

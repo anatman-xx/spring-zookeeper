@@ -93,18 +93,6 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	public CuratorFramework getZkClient() {
 		return zkClient;
 	}
-	
-	public void shutdown() {
-		for (Entry<String, LeaderSelector> entry : zkPathLeaderSelectorMapping.entrySet()) {
-			entry.getValue().close();
-		}
-	}
-
-	public void start() {
-		for (Entry<String, LeaderSelector> entry : zkPathLeaderSelectorMapping.entrySet()) {
-			entry.getValue().start();
-		}
-	}
 
 	/**
 	 * Scan for Zk* annotated field in which beans annotated with ZkManage

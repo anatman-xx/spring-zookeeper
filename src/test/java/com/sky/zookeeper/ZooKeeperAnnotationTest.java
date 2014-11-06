@@ -12,7 +12,7 @@ import com.sky.zookeeper.type.CreateStrategy;
 import com.sky.zookeeper.type.SubscribeType;
 
 @ZkManage
-@Component
+//@Component
 public class ZooKeeperAnnotationTest extends ZkContext {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZooKeeperAnnotationTest.class);
 
@@ -41,7 +41,7 @@ public class ZooKeeperAnnotationTest extends ZkContext {
 	public static void main(String[] args) {
 		LOGGER.info("initial...");
 		
-		ApplicationContext applicationContext = new ClassPathXmlApplicationContext("spring-zookeeper.xml");
+		ApplicationContext applicationContext = new ClassPathXmlApplicationContext("spring.xml");
 		ZooKeeperAnnotationTest bean = (ZooKeeperAnnotationTest) applicationContext.getBean("zooKeeperAnnotationTest");
 		
 		LOGGER.info("prev phone value " + bean.getPhone());
