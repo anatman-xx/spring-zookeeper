@@ -1,5 +1,6 @@
 package com.sky.zookeeper;
 
+import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -30,9 +31,8 @@ import com.sky.zookeeper.annotation.ZkLeader;
 import com.sky.zookeeper.annotation.ZkManage;
 import com.sky.zookeeper.annotation.ZkValue;
 import com.sky.zookeeper.type.CreateStrategy;
-import com.sky.zookeeper.type.FieldEditor;
-import com.sky.zookeeper.type.MethodInvoker;
 import com.sky.zookeeper.type.Modifier;
+import com.sky.zookeeper.type.ModifierFactory;
 import com.sky.zookeeper.type.SubscribeType;
 import com.sky.zookeeper.watcher.ZkDataChangeWatcher;
 import com.sky.zookeeper.watcher.ZkElectionListener;
@@ -81,6 +81,8 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	};
 
 	private ApplicationContext applicationContext;
+	
+	private ModifierFactory modifierFactory;
 
 	private CuratorFramework zkClient;
 	private Map<String, Set<Modifier>> zkPathModifierMapping = new HashMap<String, Set<Modifier>>();
@@ -192,47 +194,31 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 		zkPathLeaderSelectorMapping.put(zkLeaderElectionPath, leaderSelector);
 	}
-	
-	private void registerZkLeader(Object bean, Field field) {
-		ZkLeader annotation = field.getAnnotation(ZkLeader.class);
+
+	private <T extends AccessibleObject> void registerZkLeader(Object bean, T member) {
+		ZkLeader annotation = member.getAnnotation(ZkLeader.class);
 		String zkLeaderElectionPath = annotation.value();
 		
-		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext, SubscribeType.DATA_CHANGE,
+		Modifier modifier = modifierFactory.getModifier(bean, member, SubscribeType.DATA_CHANGE,
 				CreateStrategy.CONSTRUCTOR);
 		
 		if (zkPathLeaderModifierMapping.containsKey(zkLeaderElectionPath)) {
-			zkPathLeaderModifierMapping.get(zkLeaderElectionPath).add(fieldEditor);
+			zkPathLeaderModifierMapping.get(zkLeaderElectionPath).add(modifier);
 		} else {
 			Set<Modifier> modifierSet = new HashSet<Modifier>();
-			modifierSet.add(fieldEditor);
+			modifierSet.add(modifier);
 
 			zkPathLeaderModifierMapping.put(zkLeaderElectionPath, modifierSet);
 		}
 	}
 
-	private void registerZkLeader(Object bean, Method method) {
-		ZkLeader annotation = method.getAnnotation(ZkLeader.class);
-		String zkLeaderElectionPath = annotation.value();
-		
-		MethodInvoker methodInvoker = new MethodInvoker(bean, method, applicationContext);
-		
-		if (zkPathLeaderModifierMapping.containsKey(zkLeaderElectionPath)) {
-			zkPathLeaderModifierMapping.get(zkLeaderElectionPath).add(methodInvoker);
-		} else {
-			Set<Modifier> modifierSet = new HashSet<Modifier>();
-			modifierSet.add(methodInvoker);
-
-			zkPathLeaderModifierMapping.put(zkLeaderElectionPath, modifierSet);
-		}
-	}
-
-	private void registerZkValue(Object bean, Field field, boolean initial) {
-		ZkValue annotation = field.getAnnotation(ZkValue.class);
+	private <T extends AccessibleObject> void registerZkValue(Object bean, T member, boolean initial) {
+		ZkValue annotation = member.getAnnotation(ZkValue.class);
 		String zkPath = annotation.value();
 		
-		FieldEditor fieldEditor = new FieldEditor(bean, field, applicationContext, annotation.subscribeType(),
+		Modifier modifier = modifierFactory.getModifier(bean, member, annotation.subscribeType(),
 				annotation.createStrategy());
-
+		
 		if (initial) {
 			byte[] dataByte = null;
 
@@ -249,52 +235,16 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			String data = new String(dataByte);
 
 			LOGGER.debug("read data(" + data + ") on ZkPath(" + zkPath + ")");
-			fieldEditor.set(data);
+			modifier.eval(data);
 		}
 
 		if (zkPathModifierMapping.containsKey(zkPath)) {
-			zkPathModifierMapping.get(zkPath).add(fieldEditor);
+			zkPathModifierMapping.get(zkPath).add(modifier);
 		} else {
 			Set<Modifier> modifierSet = new HashSet<Modifier>();
-			modifierSet.add(fieldEditor);
+			modifierSet.add(modifier);
 
 			zkPathModifierMapping.put(zkPath, modifierSet);
-		}
-	}
-	
-	private void registerZkValue(Object bean, Method method, boolean initial) {
-		MethodInvoker methodInvoker = new MethodInvoker(bean, method, applicationContext);
-
-		ZkValue annotation = method.getAnnotation(ZkValue.class);
-		String zkPath = annotation.value();
-		
-		if (initial) {
-			byte[] dataByte = null;
-
-			try {
-				dataByte = zkClient.getData().forPath(zkPath);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			if (dataByte == null) {
-				throw new FatalBeanException("no data found on path \"" + zkPath + "\"");
-			}
-
-			String data = new String(dataByte);
-
-			LOGGER.debug("read data(" + data + ") on ZkPath(" + zkPath + ")");
-
-			methodInvoker.invoke(data);
-		}
-		
-		if (zkPathModifierMapping.containsKey(zkPath)) {
-			zkPathModifierMapping.get(zkPath).add(methodInvoker);
-		} else {
-			Set<Modifier> methodInvokerSet = new HashSet<Modifier>();
-			methodInvokerSet.add(methodInvoker);
-
-			zkPathModifierMapping.put(zkPath, methodInvokerSet);
 		}
 	}
 
@@ -322,5 +272,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 				.build();
 		
 		this.zkClient.start();
+		
+		this.modifierFactory = ModifierFactory.getInstance(applicationContext);
 	}
 }

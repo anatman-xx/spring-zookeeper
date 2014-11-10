@@ -86,4 +86,9 @@ public class FieldEditor extends Modifier {
 			throw new FatalBeanException("construct new instance failed", e);
 		}
 	}
+
+	@Override
+	public void eval(Object arg) {
+		set((String) arg);
+	}
 }
