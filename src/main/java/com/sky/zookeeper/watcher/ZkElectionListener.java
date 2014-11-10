@@ -27,7 +27,7 @@ public class ZkElectionListener implements LeaderSelectorListener {
 
 	@Override
 	public void stateChanged(CuratorFramework client, ConnectionState newState) {
-		LOGGER.trace("state has changed to " + newState);
+		LOGGER.debug("state has changed to " + newState);
 		
 		switch (newState) {
 		case CONNECTED:
@@ -49,7 +49,7 @@ public class ZkElectionListener implements LeaderSelectorListener {
 
 	@Override
 	public void takeLeadership(CuratorFramework client) throws Exception {
-		LOGGER.trace("take leader ship(" + zkPath + ")");
+		LOGGER.debug("take leader ship(" + zkPath + ")");
 		
 		for (Modifier modifier : modifierSet) {
 			if (modifier instanceof FieldEditor) {
@@ -63,6 +63,14 @@ public class ZkElectionListener implements LeaderSelectorListener {
 			lock.wait();
 		}
 
-		LOGGER.info("release leader ship(" + zkPath + ")");
+		for (Modifier modifier : modifierSet) {
+			if (modifier instanceof FieldEditor) {
+				((FieldEditor) modifier).set("false");
+			} else if (modifier instanceof MethodInvoker) {
+				((MethodInvoker) modifier).invoke("false");
+			}
+		}
+
+		LOGGER.debug("release leader ship(" + zkPath + ")");
 	}
 }

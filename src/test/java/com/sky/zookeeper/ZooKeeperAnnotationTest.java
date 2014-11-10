@@ -12,7 +12,7 @@ import com.sky.zookeeper.type.CreateStrategy;
 import com.sky.zookeeper.type.SubscribeType;
 
 @ZkManage
-//@Component
+@Component
 public class ZooKeeperAnnotationTest extends ZkContext {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZooKeeperAnnotationTest.class);
 
@@ -48,7 +48,7 @@ public class ZooKeeperAnnotationTest extends ZkContext {
 
 		LOGGER.info("sleep...");
 		try {
-			Thread.currentThread().sleep(10000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

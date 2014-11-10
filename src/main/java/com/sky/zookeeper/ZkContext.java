@@ -98,15 +98,15 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	 * Scan for Zk* annotated field in which beans annotated with ZkManage
 	 */
 	private void scanForFieldsAndMethods() {
-		LOGGER.trace("scanning for fields and methods with zk* annotation...");
+		LOGGER.debug("scanning for fields and methods with zk* annotation...");
 
 		for (final Object bean : applicationContext.getBeansWithAnnotation(ZkManage.class).values()) {
-			LOGGER.trace("found bean(" + bean.getClass().getName() + ") with ZkManage");
+			LOGGER.debug("found bean(" + bean.getClass().getName() + ") with ZkManage");
 
 			ReflectionUtils.doWithFields(bean.getClass(), new FieldCallback() {
 				@Override
 				public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
-					LOGGER.trace("found field(" + field.getName() + ") with ZkValue");
+					LOGGER.debug("found field(" + field.getName() + ") with ZkValue");
 
 					registerZkValue(bean, field, true);
 				}
@@ -115,7 +115,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			ReflectionUtils.doWithMethods(bean.getClass(), new MethodCallback() {
 				@Override
 				public void doWith(Method method) throws IllegalArgumentException, IllegalAccessException {
-					LOGGER.trace("found method(" + method.getName() + ") with ZkValue");
+					LOGGER.debug("found method(" + method.getName() + ") with ZkValue");
 					
 					registerZkValue(bean, method, true);
 				}
@@ -124,7 +124,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			ReflectionUtils.doWithFields(bean.getClass(), new FieldCallback() {
 				@Override
 				public void doWith(Field field) throws IllegalArgumentException, IllegalAccessException {
-					LOGGER.trace("found field(" + field.getName() + ") with ZkLeader");
+					LOGGER.debug("found field(" + field.getName() + ") with ZkLeader");
 
 					registerZkLeader(bean, field);
 				}
@@ -133,7 +133,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 			ReflectionUtils.doWithMethods(bean.getClass(), new MethodCallback() {
 				@Override
 				public void doWith(Method method) throws IllegalArgumentException, IllegalAccessException {
-					LOGGER.trace("found method(" + method.getName() + ") with ZkLeader");
+					LOGGER.debug("found method(" + method.getName() + ") with ZkLeader");
 					
 					registerZkLeader(bean, method);
 				}
@@ -142,7 +142,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 	}
 
 	private void validateZkPathMapping() {
-		LOGGER.trace("validating ZkPathMapping...");
+		LOGGER.debug("validating ZkPathMapping...");
 
 		Map<String, SubscribeType> zkPathSubscribeTypeMapping = new HashMap<String, SubscribeType>();
 		Map<String, CreateStrategy> zkPathCreateStrategyMapping = new HashMap<String, CreateStrategy>();
@@ -248,7 +248,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 			String data = new String(dataByte);
 
-			LOGGER.trace("read data(" + data + ") on ZkPath(" + zkPath + ")");
+			LOGGER.debug("read data(" + data + ") on ZkPath(" + zkPath + ")");
 			fieldEditor.set(data);
 		}
 
@@ -283,7 +283,7 @@ public abstract class ZkContext implements InitializingBean, ApplicationContextA
 
 			String data = new String(dataByte);
 
-			LOGGER.trace("read data(" + data + ") on ZkPath(" + zkPath + ")");
+			LOGGER.debug("read data(" + data + ") on ZkPath(" + zkPath + ")");
 
 			methodInvoker.invoke(data);
 		}

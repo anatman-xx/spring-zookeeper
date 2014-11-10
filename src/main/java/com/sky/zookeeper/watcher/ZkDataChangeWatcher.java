@@ -25,7 +25,7 @@ public class ZkDataChangeWatcher implements CuratorWatcher {
 
 	@Override
 	public void process(WatchedEvent event) throws Exception {
-		LOGGER.trace("receive event(" + event + ")");
+		LOGGER.debug("receive event(" + event + ")");
 
 		switch (event.getType()) {
 		case NodeDataChanged:

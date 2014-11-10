@@ -53,7 +53,7 @@ public class FieldEditor extends Modifier {
 	 * Set field with new value contructed by given string or bean
 	 */
 	public void set(String value) {
-		LOGGER.trace("set field to " + value.toString());
+		LOGGER.debug("set field to " + value.toString());
 
 		try {
 			switch (getCreateStrategy()) {

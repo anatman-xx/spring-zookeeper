@@ -17,7 +17,6 @@ import com.sky.zookeeper.annotation.ZkManage;
 
 @ZkManage
 @Component
-//@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class ZooKeeperLeaderElectionTest extends ZkContext {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ZooKeeperLeaderElectionTest.class);
 
