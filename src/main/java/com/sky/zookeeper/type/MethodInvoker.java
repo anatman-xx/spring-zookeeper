@@ -5,27 +5,24 @@ import java.lang.reflect.Method;
 
 import org.springframework.context.ApplicationContext;
 
-import com.sky.zookeeper.annotation.ZkValue;
-
 
 public class MethodInvoker extends Modifier {
 	private Method method;
 
-	public MethodInvoker(Object object, Method method, ApplicationContext applicationContext) {
+	public MethodInvoker(Object object, Method method, ApplicationContext applicationContext,
+			SubscribeType subscribeType, CreateStrategy createStrategy) {
 		this.object = object;
 		this.method = method;
 
-		ZkValue annotation = method.getAnnotation(ZkValue.class);
-
-		setSubscribeType(annotation.subscribeType());
-		setCreateStrategy(annotation.createStrategy());
+		setSubscribeType(subscribeType);
+		setCreateStrategy(createStrategy);
 	}
 	
 	/**
 	 * not yet support BEAN create strategy
 	 */
-	public void invoke(String arg) {
-		LOGGER.trace("invoke method with argument " + arg);
+	public void invoke(Object arg) {
+		LOGGER.debug("invoke method with argument " + arg);
 
 		try {
 			method.invoke(object, arg);
@@ -36,5 +33,10 @@ public class MethodInvoker extends Modifier {
 		} catch (InvocationTargetException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public void eval(Object arg) {
+		invoke(arg);
 	}
 }

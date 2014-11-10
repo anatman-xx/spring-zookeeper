@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Indicate whether server is leader or follower
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface ZkLeader {
 	String value();
 }

@@ -16,7 +16,9 @@ public abstract class Modifier {
 	protected ApplicationContext applicationContext;
 
 	protected Object object;
-
+	
+	public abstract void eval(Object arg);
+	
 	public CreateStrategy getCreateStrategy() {
 		return createStrategy;
 	}

@@ -1,4 +1,4 @@
-package com.sky.zookeeper.handler;
+package com.sky.zookeeper.watcher;
 
 import java.util.Set;
 
@@ -12,20 +12,20 @@ import com.sky.zookeeper.type.FieldEditor;
 import com.sky.zookeeper.type.MethodInvoker;
 import com.sky.zookeeper.type.Modifier;
 
-public class ZkDataChangeEventHandler implements CuratorWatcher {
-	private static final Logger LOGGER = LoggerFactory.getLogger(ZkDataChangeEventHandler.class);
+public class ZkDataChangeWatcher implements CuratorWatcher {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ZkDataChangeWatcher.class);
 
 	private CuratorFramework zkClient;
 	private Set<Modifier> modifierSet;
 
-	public ZkDataChangeEventHandler(CuratorFramework zkClient, Set<Modifier> modifierSet) {
+	public ZkDataChangeWatcher(CuratorFramework zkClient, Set<Modifier> modifierSet) {
 		this.zkClient = zkClient;
 		this.modifierSet = modifierSet;
 	}
 
 	@Override
 	public void process(WatchedEvent event) throws Exception {
-		LOGGER.trace("receive event(" + event + ")");
+		LOGGER.debug("receive event(" + event + ")");
 
 		switch (event.getType()) {
 		case NodeDataChanged:
